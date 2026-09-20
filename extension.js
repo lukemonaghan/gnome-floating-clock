@@ -5,6 +5,7 @@
  * - Compatible with GNOME Shell 45–50
  */
 
+import GObject from 'gi://GObject';
 import Clutter from 'gi://Clutter';
 import Meta from 'gi://Meta';
 import St from 'gi://St';
@@ -98,6 +99,7 @@ export default class FloatingClockExtension extends Extension {
       this._createHotEdge();
     } else {
       this._endPanelReveal(immediate);
+      this._restorePanelStruts();
       this._destroyHotEdge();
       this._showPanel(immediate);
     }
@@ -120,6 +122,7 @@ export default class FloatingClockExtension extends Extension {
     if (duration <= 0 || !panel.visible) {
       panel.translation_y = 0;
       panel.hide();
+      this._restorePanelStruts();
       return;
     }
 
@@ -132,6 +135,7 @@ export default class FloatingClockExtension extends Extension {
         if (this._panelTargetVisible) return;
         panel.hide();
         panel.translation_y = 0;
+        this._restorePanelStruts();
       },
     });
   }
@@ -206,7 +210,9 @@ export default class FloatingClockExtension extends Extension {
     // their size, and show it even over a fullscreen window.
     const tracked = this._getPanelTrackedActor();
     if (tracked) {
-      this._savedAffectsStruts = tracked.affectsStruts;
+      // Keep the original value if a previous reveal is still sliding out.
+      if (this._savedAffectsStruts === undefined)
+        this._savedAffectsStruts = tracked.affectsStruts;
       tracked.affectsStruts = false;
     }
     Main.layoutManager.panelBox.show();
@@ -248,11 +254,18 @@ export default class FloatingClockExtension extends Extension {
       this._panelRevealTimerId = 0;
     }
 
+    // Struts come back only once the bar has finished sliding away; restoring
+    // them while it is still visible would briefly shrink maximised windows.
     if (this._panelHidden)
       this._hidePanel(immediate);
+    else
+      this._restorePanelStruts();
+  }
 
+  _restorePanelStruts() {
+    if (this._panelRevealed || this._savedAffectsStruts === undefined) return;
     const tracked = this._getPanelTrackedActor();
-    if (tracked && this._savedAffectsStruts !== undefined)
+    if (tracked)
       tracked.affectsStruts = this._savedAffectsStruts;
     this._savedAffectsStruts = undefined;
     Main.layoutManager._queueUpdateRegions?.();
@@ -520,6 +533,16 @@ export default class FloatingClockExtension extends Extension {
     }
   }
 
+  // Connect the first of `signals` that the object actually exposes.
+  _connectFirstSignal(obj, signals, handler) {
+    for (const signal of signals) {
+      if (GObject.signal_lookup(signal, obj.constructor.$gtype)) {
+        this._connectSignal(obj, signal, handler);
+        return;
+      }
+    }
+  }
+
   _monitorWindow(win) {
     if (!win) return;
 
@@ -541,14 +564,9 @@ export default class FloatingClockExtension extends Extension {
     // Also attempt to watch fullscreen property on the window if present.
     this._connectSignal(win, 'notify::fullscreen', () => this._updateVisibility());
 
-    // Some effects (and other extensions) change actor size rather than
-    // window properties — listen to the compositor actor's size-changed so
-    // we catch those cases as well.
-    try {
-      const actor = win.get_compositor_private && win.get_compositor_private();
-      if (actor && actor.connect)
-        this._connectSignal(actor, 'size-changed', () => this._updateVisibility());
-    } catch (e) { /* ignore */ }
+    // Catch size changes that don't flip a maximize/fullscreen property.
+    // MetaWindow emits 'size-changed'; older Shells only had it on the actor.
+    this._connectFirstSignal(win, ['size-changed'], () => this._updateVisibility());
 
     // Clean up our bookkeeping when the window is removed from the WM.
     this._connectSignal(win, 'unmanaged', () => {
@@ -637,8 +655,9 @@ export default class FloatingClockExtension extends Extension {
     /* ── watch fullscreen / maximize changes ── */
     this._connectSignal(global.display, 'in-fullscreen-changed',
       () => this._updateVisibility());
-    this._connectSignal(global.window_manager, 'size-change-complete',
-      () => this._updateVisibility());
+    // 'size-change-complete' was renamed 'size-changed' in newer Shells.
+    this._connectFirstSignal(global.window_manager,
+      ['size-change-complete', 'size-changed'], () => this._updateVisibility());
 
     // Monitor per-window maximize/fullscreen changes and new windows so that
     // maximized windows are treated the same as fullscreen windows.
