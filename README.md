@@ -48,6 +48,7 @@ Everything is configured from the extension's preferences window. Each setting i
 | Show on Fullscreen | `show-on-fullscreen` | On | Shows the clock while a fullscreen (or maximized) window is on the target monitor. | The main use case: the top bar is out of sight, so the clock takes over. |
 | Show on Overview | `show-on-overview` | Off | Shows the clock while the Activities overview is open. | Handy if you want a clock in the overview. While the overview is open, fullscreen visibility is suppressed, so this is the only rule that applies there. |
 | Hide Top Bar on Fullscreen | `hide-panel-on-fullscreen` | Off | Hides the top bar while a fullscreen (or maximized) window is on the target monitor. The bar comes back in the overview and when you leave fullscreen. Move the pointer to the very top edge of the primary monitor to reveal the bar on top of the windows (they are not resized or moved); the floating clock hides while the bar is showing, and the bar hides again when the pointer leaves it. | Gives you a clean, distraction-free screen with the floating clock as the only time display. Works independently of *Force Hide* and *Show on Fullscreen*. |
+| Top Bar Animation Speed | `panel-animation-duration` | 0.2 | Seconds the top bar takes to slide up out of view and back down again, both when it hides on fullscreen and when you reveal it from the top edge (0–2; `0` turns the animation off). | Makes the top bar appear and disappear smoothly instead of popping. One value covers both directions. |
 
 ### Time and date
 

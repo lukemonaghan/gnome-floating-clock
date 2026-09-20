@@ -58,6 +58,18 @@ export default class FloatingClockPrefs extends ExtensionPreferences {
     settings.bind('hide-panel-on-fullscreen', hidePanelRow, 'active', Gio.SettingsBindFlags.DEFAULT);
     conditionsGroup.add(hidePanelRow);
 
+    const panelAnimRow = new Adw.SpinRow({
+      title: 'Top Bar Animation Speed',
+      subtitle: 'Seconds the top bar takes to slide away or back (0 = instant)',
+      adjustment: new Gtk.Adjustment({
+        lower: 0, upper: 2, step_increment: 0.05, page_increment: 0.25,
+        value: settings.get_double('panel-animation-duration'),
+      }),
+      digits: 2,
+    });
+    settings.bind('panel-animation-duration', panelAnimRow, 'value', Gio.SettingsBindFlags.DEFAULT);
+    conditionsGroup.add(panelAnimRow);
+
     /* ── Font group ── */
     const fontGroup = new Adw.PreferencesGroup({
       title: 'Font',

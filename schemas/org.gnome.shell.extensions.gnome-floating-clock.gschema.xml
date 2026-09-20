@@ -21,6 +21,13 @@
       <description>Hide the top bar whenever the floating clock would be shown for a fullscreen window.</description>
     </key>
 
+    <key name="panel-animation-duration" type="d">
+      <default>0.2</default>
+      <range min="0.0" max="2.0"/>
+      <summary>Top bar animation duration</summary>
+      <description>Duration in seconds of the slide animation used when the top bar hides and shows. Set to 0 to disable the animation.</description>
+    </key>
+
     <key name="show-on-overview" type="b">
       <default>false</default>
       <summary>Show on overview</summary>

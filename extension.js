@@ -90,17 +90,74 @@ export default class FloatingClockExtension extends Extension {
     return Main.overview.visible;
   }
 
-  _setPanelHidden(hidden) {
+  _setPanelHidden(hidden, immediate = false) {
     if (hidden === !!this._panelHidden) return;
     this._panelHidden = hidden;
     if (hidden) {
-      Main.panel.hide();
+      this._hidePanel(immediate);
       this._createHotEdge();
     } else {
-      this._endPanelReveal();
+      this._endPanelReveal(immediate);
       this._destroyHotEdge();
-      Main.panel.show();
+      this._showPanel(immediate);
     }
+  }
+
+  /* ── top bar slide animation ── */
+
+  _getPanelAnimationMs() {
+    if (!this._settings) return 0;
+    return Math.round(this._settings.get_double('panel-animation-duration') * 1000);
+  }
+
+  // Slides the top bar up out of view, then hides it.
+  _hidePanel(immediate = false) {
+    const panel = Main.panel;
+    this._panelTargetVisible = false;
+    panel.remove_all_transitions();
+
+    const duration = immediate ? 0 : this._getPanelAnimationMs();
+    if (duration <= 0 || !panel.visible) {
+      panel.translation_y = 0;
+      panel.hide();
+      return;
+    }
+
+    panel.ease({
+      translation_y: -panel.get_preferred_height(-1)[1],
+      duration,
+      mode: Clutter.AnimationMode.EASE_IN_QUAD,
+      onComplete: () => {
+        // A show may have interrupted us; only finish if still meant to hide.
+        if (this._panelTargetVisible) return;
+        panel.hide();
+        panel.translation_y = 0;
+      },
+    });
+  }
+
+  // Shows the top bar and slides it down into place.
+  _showPanel(immediate = false) {
+    const panel = Main.panel;
+    this._panelTargetVisible = true;
+    panel.remove_all_transitions();
+
+    const duration = immediate ? 0 : this._getPanelAnimationMs();
+    if (duration <= 0) {
+      panel.translation_y = 0;
+      panel.show();
+      return;
+    }
+
+    if (!panel.visible) {
+      panel.translation_y = -panel.get_preferred_height(-1)[1];
+      panel.show();
+    }
+    panel.ease({
+      translation_y: 0,
+      duration,
+      mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+    });
   }
 
   /* ── hover-to-reveal top bar ── */
@@ -153,7 +210,7 @@ export default class FloatingClockExtension extends Extension {
       tracked.affectsStruts = false;
     }
     Main.layoutManager.panelBox.show();
-    Main.panel.show();
+    this._showPanel();
 
     this._panelRevealTimerId = GLib.timeout_add(
       GLib.PRIORITY_DEFAULT, 200, () => this._checkPanelReveal());
@@ -182,7 +239,7 @@ export default class FloatingClockExtension extends Extension {
     return GLib.SOURCE_CONTINUE;
   }
 
-  _endPanelReveal() {
+  _endPanelReveal(immediate = false) {
     if (!this._panelRevealed) return;
     this._panelRevealed = false;
 
@@ -192,7 +249,7 @@ export default class FloatingClockExtension extends Extension {
     }
 
     if (this._panelHidden)
-      Main.panel.hide();
+      this._hidePanel(immediate);
 
     const tracked = this._getPanelTrackedActor();
     if (tracked && this._savedAffectsStruts !== undefined)
@@ -641,8 +698,8 @@ export default class FloatingClockExtension extends Extension {
 
   disable() {
     this._disconnectAllSignals();
-    this._endPanelReveal();
-    this._setPanelHidden(false);
+    this._endPanelReveal(true);
+    this._setPanelHidden(false, true);
     this._destroyHotEdge();
     this._monitoredWindows = null;
 
