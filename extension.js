@@ -93,10 +93,112 @@ export default class FloatingClockExtension extends Extension {
   _setPanelHidden(hidden) {
     if (hidden === !!this._panelHidden) return;
     this._panelHidden = hidden;
-    if (hidden)
+    if (hidden) {
       Main.panel.hide();
-    else
+      this._createHotEdge();
+    } else {
+      this._endPanelReveal();
+      this._destroyHotEdge();
       Main.panel.show();
+    }
+  }
+
+  /* ── hover-to-reveal top bar ── */
+
+  // A 1px reactive strip along the top of the primary monitor. Pointing at it
+  // while the top bar is hidden slides the bar in on top of the windows.
+  _createHotEdge() {
+    if (this._hotEdge) return;
+    this._hotEdge = new Clutter.Actor({ reactive: true });
+    this._hotEdge.connect('enter-event', () => {
+      this._beginPanelReveal();
+      return Clutter.EVENT_PROPAGATE;
+    });
+    Main.layoutManager.addChrome(this._hotEdge, {
+      affectsStruts: false,
+      trackFullscreen: false,
+    });
+    this._positionHotEdge();
+  }
+
+  _positionHotEdge() {
+    if (!this._hotEdge) return;
+    const m = Main.layoutManager.primaryMonitor;
+    if (!m) return;
+    this._hotEdge.set_position(m.x, m.y);
+    this._hotEdge.set_size(m.width, 1);
+  }
+
+  _destroyHotEdge() {
+    if (!this._hotEdge) return;
+    Main.layoutManager.removeChrome(this._hotEdge);
+    this._hotEdge.destroy();
+    this._hotEdge = null;
+  }
+
+  _getPanelTrackedActor() {
+    const tracked = Main.layoutManager._trackedActors || [];
+    return tracked.find(t => t.actor === Main.layoutManager.panelBox) ?? null;
+  }
+
+  _beginPanelReveal() {
+    if (this._panelRevealed || !this._panelHidden) return;
+    this._panelRevealed = true;
+
+    // Overlay the bar: don't reserve screen space for it, so windows keep
+    // their size, and show it even over a fullscreen window.
+    const tracked = this._getPanelTrackedActor();
+    if (tracked) {
+      this._savedAffectsStruts = tracked.affectsStruts;
+      tracked.affectsStruts = false;
+    }
+    Main.layoutManager.panelBox.show();
+    Main.panel.show();
+
+    this._panelRevealTimerId = GLib.timeout_add(
+      GLib.PRIORITY_DEFAULT, 200, () => this._checkPanelReveal());
+    this._updateVisibility();
+  }
+
+  _checkPanelReveal() {
+    if (!this._panelRevealed)
+      return GLib.SOURCE_REMOVE;
+
+    const box = Main.layoutManager.panelBox;
+    box.show(); // keep the layout manager from re-hiding it over fullscreen
+
+    const [px, py] = global.get_pointer();
+    const [bx, by] = box.get_transformed_position();
+    const inside = px >= bx && px < bx + box.width &&
+                   py >= by && py < by + box.height + 4;
+    const menuOpen = !!Main.panel.menuManager?.activeMenu;
+
+    if (!inside && !menuOpen) {
+      this._panelRevealTimerId = 0;
+      this._endPanelReveal();
+      this._updateVisibility();
+      return GLib.SOURCE_REMOVE;
+    }
+    return GLib.SOURCE_CONTINUE;
+  }
+
+  _endPanelReveal() {
+    if (!this._panelRevealed) return;
+    this._panelRevealed = false;
+
+    if (this._panelRevealTimerId) {
+      GLib.Source.remove(this._panelRevealTimerId);
+      this._panelRevealTimerId = 0;
+    }
+
+    if (this._panelHidden)
+      Main.panel.hide();
+
+    const tracked = this._getPanelTrackedActor();
+    if (tracked && this._savedAffectsStruts !== undefined)
+      tracked.affectsStruts = this._savedAffectsStruts;
+    this._savedAffectsStruts = undefined;
+    Main.layoutManager._queueUpdateRegions?.();
   }
 
   _updateVisibility() {
@@ -107,7 +209,8 @@ export default class FloatingClockExtension extends Extension {
 
     let shouldShow = false;
 
-    if (!forceHide) {
+    // The revealed top bar has its own clock, so the floating one steps aside.
+    if (!forceHide && !this._panelRevealed) {
       const showOnFullscreen = this._settings.get_boolean('show-on-fullscreen');
       const showOnOverview = this._settings.get_boolean('show-on-overview');
 
@@ -125,6 +228,7 @@ export default class FloatingClockExtension extends Extension {
     this._setPanelHidden(
       this._settings.get_boolean('hide-panel-on-fullscreen') &&
       this._hasFullscreenWindow() && !this._isOverviewVisible());
+    this._positionHotEdge();
 
     if (debugMode) {
       // Always keep the container visible; use border colour to indicate state
@@ -537,7 +641,9 @@ export default class FloatingClockExtension extends Extension {
 
   disable() {
     this._disconnectAllSignals();
+    this._endPanelReveal();
     this._setPanelHidden(false);
+    this._destroyHotEdge();
     this._monitoredWindows = null;
 
     if (this._settings) {
