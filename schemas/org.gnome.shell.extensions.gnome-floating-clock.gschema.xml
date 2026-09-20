@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.gnome-floating-clock"
+          path="/org/gnome/shell/extensions/gnome-floating-clock/">
+
+    <key name="force-hide" type="b">
+      <default>false</default>
+      <summary>Force hide clock</summary>
+      <description>Disable the floating clock.</description>
+    </key>
+
+    <key name="show-on-fullscreen" type="b">
+      <default>true</default>
+      <summary>Show on fullscreen</summary>
+      <description>Show the floating clock when a window is fullscreen.</description>
+    </key>
+
+    <key name="hide-panel-on-fullscreen" type="b">
+      <default>false</default>
+      <summary>Hide top bar on fullscreen</summary>
+      <description>Hide the top bar whenever the floating clock would be shown for a fullscreen window.</description>
+    </key>
+
+    <key name="show-on-overview" type="b">
+      <default>false</default>
+      <summary>Show on overview</summary>
+      <description>Show the floating clock when the Activities overview is open.</description>
+    </key>
+
+    <key name="position-x" type="i">
+      <default>100</default>
+      <range min="0" max="16384"/>
+      <summary>Horizontal position</summary>
+      <description>Horizontal position of the clock in pixels from the left edge of the target monitor.</description>
+    </key>
+
+    <key name="position-y" type="i">
+      <default>100</default>
+      <range min="0" max="16384"/>
+      <summary>Vertical position</summary>
+      <description>Vertical position of the clock in pixels from the top edge of the target monitor.</description>
+    </key>
+
+    <key name="monitor" type="i">
+      <default>-1</default>
+      <summary>Target monitor</summary>
+      <description>Monitor to display the clock on. Use -1 for the primary monitor; 0..N select the monitor index.</description>
+    </key>
+
+    <key name="font-family" type="s">
+      <default>''</default>
+      <summary>Font family</summary>
+      <description>Font family for the clock label. Leave empty to use the default system font.</description>
+    </key>
+
+    <key name="font-size" type="i">
+      <default>48</default>
+      <range min="8" max="200"/>
+      <summary>Font size</summary>
+      <description>Font size for the clock label in pixels.</description>
+    </key>
+
+    <key name="font-weight" type="s">
+      <default>'normal'</default>
+      <summary>Font weight</summary>
+      <description>Font weight for the clock text (normal, bold, bolder, lighter).</description>
+    </key>
+
+    <key name="font-style" type="s">
+      <default>'normal'</default>
+      <summary>Font style</summary>
+      <description>Font style for the clock text (normal, italic, oblique).</description>
+    </key>
+
+    <key name="font-color" type="s">
+      <default>''</default>
+      <summary>Font color</summary>
+      <description>CSS color value for the clock text (e.g. #ffffff, red, rgb(255,255,255)). Leave empty to use default GNOME color.</description>
+    </key>
+
+    <key name="use-24h" type="b">
+      <default>true</default>
+      <summary>Use 24-hour format</summary>
+      <description>When enabled, display time in 24-hour format (e.g. 14:30). When disabled, use 12-hour AM/PM format (e.g. 2:30 PM).</description>
+    </key>
+
+    <key name="show-date" type="b">
+      <default>false</default>
+      <summary>Show date</summary>
+      <description>Whether to show the date alongside the time.</description>
+    </key>
+
+    <key name="show-weekday" type="b">
+      <default>false</default>
+      <summary>Show weekday</summary>
+      <description>Whether to include the day of the week when showing the date.</description>
+    </key>
+
+    <key name="date-format" type="s">
+      <default>'short-name'</default>
+      <summary>Date format</summary>
+      <description>Format for the date display. Options: 'short-name' (Apr 3), 'long-name' (April 3), 'short-numeric' (4/3), 'long-numeric' (2026-04-03).</description>
+    </key>
+
+    <key name="drag-modifier-key" type="s">
+      <default>''</default>
+      <summary>Drag modifier key</summary>
+      <description>Modifier key that must be held to drag the clock. Leave empty to always allow dragging. Options: 'Ctrl', 'Alt', 'Shift', 'Super'.</description>
+    </key>
+
+    <key name="debug-mode" type="b">
+      <default>false</default>
+      <summary>Debug mode</summary>
+      <description>When enabled, show/hide is replaced with a coloured border (green = show, red = hide) so the clock is always visible.</description>
+    </key>
+
+  </schema>
+</schemalist>

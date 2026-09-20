@@ -1,0 +1,9 @@
+{
+  "uuid": "gnome-floating-clock@lukem",
+  "name": "GNOME Floating Clock",
+"description": "A simple floating clock centered on the screen.",
+  "version": 3,
+  "settings-schema": "org.gnome.shell.extensions.gnome-floating-clock",
+  "shell-version": ["45", "46", "47", "48", "49", "50"],
+  "url": "https://github.com/lukemonaghan/gnome-floating-clock"
+}
